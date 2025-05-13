@@ -1,0 +1,10 @@
+LICENSE
+README.md
+setup.py
+src/llmfilescript/__init__.py
+src/llmfilescript.egg-info/PKG-INFO
+src/llmfilescript.egg-info/SOURCES.txt
+src/llmfilescript.egg-info/dependency_links.txt
+src/llmfilescript.egg-info/entry_points.txt
+src/llmfilescript.egg-info/requires.txt
+src/llmfilescript.egg-info/top_level.txt

@@ -46,7 +46,7 @@
       model_name: "qwen-max-latest" # 示例模型，请替换为您的模型名称
 
     # 请求超时时间（秒）
-    timeout: 130
+    timeout: 330
     ```
     **重要提示**：请确保 `api_token` 的安全，不要将其提交到公共代码仓库中。建议将 `config.yaml` 文件添加到 `.gitignore` 中（如果尚未添加）。
 

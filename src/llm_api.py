@@ -23,6 +23,10 @@ class APIClient:
         """
         self.config = self._load_config(config_path or str(Path(__file__).resolve().parent.parent / 'config.yaml'))
         
+        # print所有config中的内容
+        for key, value in self.config.items():
+            print(f"{key}: {value}")
+
         # 从配置中获取 api_key 和 base_url
         # 优先使用配置文件中的 api_token
         api_key = self.config['base_config'].get('api_token')
@@ -66,8 +70,14 @@ class APIClient:
             # 同上
             raise
 
+    class LLMError(Exception):
+        """自定义异常基类，包含原始异常和错误信息"""
+        def __init__(self, message: str, original_exception: Exception = None):
+            super().__init__(message)
+            self.original_exception = original_exception
+
     def ask_llm(self, prompt: str, model_name: str = None, 
-               temperature: float = 0.7, max_tokens: int = 200) -> Optional[str]:
+               temperature: float = 0.7, max_tokens: int = 200) -> str:
         """
         向大模型发送请求并获取响应。
 
@@ -112,45 +122,37 @@ class APIClient:
                     return message.content.strip() # 返回模型生成的文本内容，并去除首尾空白
                 else:
                     print("错误：模型响应的choice中不包含有效的message content。")
-                    return "模型响应数据格式异常：message content为空"
+                    raise self.LLMError("模型响应数据格式异常：message content为空", ValueError())
             else:
                 print(f"错误：模型 '{actual_model_name}' 未返回有效的choices。响应: {completion}")
-                return "模型响应异常：未返回choices"
+                raise self.LLMError(f"模型响应异常：未返回choices（原始响应：{completion}）", ValueError())
         
-        # OpenAI Python SDK v1.0.0+ 推荐的异常处理方式
         except AuthenticationError as e:
             error_msg = e.message if hasattr(e, 'message') and e.message else str(e)
-            print(f"API认证失败: {error_msg}")
-            # DashScope的错误信息可能在 e.body['message']
             error_detail = e.body.get('message') if hasattr(e, 'body') and isinstance(e.body, dict) else error_msg
-            return f"API认证失败: {error_detail}"
+            raise self.LLMError(f"API认证失败: {error_detail}", e)
         except RateLimitError as e:
             error_msg = e.message if hasattr(e, 'message') and e.message else str(e)
-            print(f"API请求频率超限: {error_msg}")
             error_detail = e.body.get('message') if hasattr(e, 'body') and isinstance(e.body, dict) else error_msg
-            return f"API请求频率超限: {error_detail}"
+            raise self.LLMError(f"API请求频率超限: {error_detail}", e)
         except APIConnectionError as e:
             error_msg = e.message if hasattr(e, 'message') and e.message else str(e)
-            print(f"无法连接到API: {error_msg}")
-            return "无法连接到API，请检查网络或API服务器地址"
-        except APIError as e: # 更通用的API错误 (例如 4xx, 5xx 错误)
+            raise self.LLMError(f"无法连接到API: {error_msg}", e)
+        except APIError as e:
             status_code = e.status_code if hasattr(e, 'status_code') else 'N/A'
             error_msg = e.message if hasattr(e, 'message') and e.message else str(e)
-            print(f"API返回错误 (状态码 {status_code}): {error_msg}")
-            # 尝试从 e.body 或 e.response 获取更详细的错误信息
             error_detail = error_msg
             if hasattr(e, 'body') and isinstance(e.body, dict) and 'message' in e.body:
                 error_detail = e.body['message']
             elif hasattr(e, 'response') and hasattr(e.response, 'text'):
                  try:
                     error_json = e.response.json()
-                    if 'message' in error_json:
-                        error_detail = error_json['message']
-                    elif 'code' in error_json: # DashScope specific
-                         error_detail = f"Code: {error_json['code']}, Message: {error_json.get('message', '')}"
-                 except ValueError: # Not JSON
-                    error_detail = e.response.text[:200] # Truncate if too long
-            return f"API请求失败: {error_detail}"
-        except Exception as e: # 其他所有未捕获的Python异常
-            print(f"调用LLM时发生未知错误: {type(e).__name__} - {str(e)}")
-            return f"调用LLM时发生未知错误: {str(e)}"
+                    error_detail = error_json.get('message') or f"Code: {error_json.get('code', '未知')}"
+                 except ValueError:
+                    error_detail = e.response.text[:200]
+            raise self.LLMError(f"API请求失败({status_code}): {error_detail}", e)
+        except Exception as e:
+            raise self.LLMError(f"调用LLM时发生未捕获异常: {str(e)}", e)
+        
+        # 添加成功时的明确返回
+        return message.content.strip() if message and message.content else ""

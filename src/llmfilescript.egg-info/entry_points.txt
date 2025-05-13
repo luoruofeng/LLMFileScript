@@ -1,0 +1,2 @@
+[console_scripts]
+lfs = llmfilescript.main:main

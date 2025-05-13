@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 from llm_api import APIClient
 from filename_changer import rename_all_files_in_directory_with_llm
-
+import sys
 
 def main():
     """
@@ -20,7 +20,12 @@ def main():
     if args.command == 'change_filenames':
         client = APIClient()
         target_dir = Path(args.directory)
-        rename_all_files_in_directory_with_llm(target_dir, client)
+        try:
+            rename_all_files_in_directory_with_llm(target_dir, client)
+        except Exception as e:
+            print(f'\n错误: {str(e)}')
+            print('已中止文件重命名操作，未修改任何文件名')
+            sys.exit(1)
     else:
         print("Hello from Python Project!")
 

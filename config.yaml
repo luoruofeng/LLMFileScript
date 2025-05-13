@@ -1,7 +1,7 @@
 base_config:
   api_url: "https://dashscope.aliyuncs.com/compatible-mode/v1/"
-  api_token: "skluo-08e97852ea004de8ruo8eaf8cb826099058feng"
+  api_token: "sk-08e97852ea004de88eaf8cb826099058"
   model_name: "qwen-max-latest"
 
 # 请求超时时间（秒）
-timeout: 130
+timeout: 330

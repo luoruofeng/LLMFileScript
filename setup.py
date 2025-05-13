@@ -15,7 +15,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "lfs=main:main"
+            "lfs=llmfilescript.main:main"  # 修正后的入口点路径
         ]
     },
     python_requires=">=3.11",
